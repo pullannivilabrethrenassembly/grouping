@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Registration and Subgrouping</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="download.js">
+    <style>
+body{
+  padding-bottom: 50px;
+}
+
+      .flex-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+      .flex-item {
+        flex: 1;
+      }
+
+      /* Add hover and alternating row colors for the tables */
+      .table-auto tbody tr:nth-child(even) {
+        background-color: #f9fafb; /* Light grey for even rows */
+      }
+      .table-auto tbody tr:hover {
+        background-color: #e5e7eb; /* Slightly darker grey on hover */
+      }
+      /* Custom colors for different tables */
+      .table-blue {
+        background-color: #ebf8ff; /* Light blue for one table */
+      }
+      .table-green {
+        background-color: #f0fdf4; /* Light green for another table */
+      }
+      .table-yellow {
+        background-color: #fefce8; /* Light yellow for another table */
+      }
+      .table-red {
+        background-color: #fef2f2; /* Light red for another table */
+      }
+
+      .search-highlight {
+        background-color: #ffffe0; /* Light yellow */
+      }
+
+      .scroll-button {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: white; /* White button */
+  color: gray; /* Gray icon color */
+  width: 40px; /* Smaller width */
+  height: 40px; /* Smaller height */
+  border-radius: 50%; /* Fully rounded */
+  cursor: pointer;
+  z-index: 1000;
+  border: 2px solid #ccc; /* Light gray border */
+  display: flex; /* Center the icon */
+  justify-content: center; /* Horizontally center the icon */
+  align-items: center; /* Vertically center the icon */
+  transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth background and shadow transition */
+}
+
+.scroll-button i {
+  font-size: 20px; /* Smaller icon size */
+}
+
+.scroll-button:hover {
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); /* Slightly stronger shadow on hover */
+}
+
+.scroll-button.up {
+  bottom: 20px;
+}
+
+.scroll-button.down {
+  bottom: 20px;
+}
+
+
+    </style>
+  </head>
+  <body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+      <h1 class="text-2xl font-bold text-center mb-4">
+        TEENS' AND YOUTHS' CAMP 2025 - Registration & Subgrouping
+      </h1>
+
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold">Upload Student Details (Excel)</h2>
+        <input
+          type="file"
+          id="fileInput"
+          accept=".xlsx, .xls"
+          class="p-2 border border-gray-300 rounded-md mb-4"
+        />
+        <button
+          id="uploadFile"
+          class="px-4 py-2 bg-blue-500 text-white rounded-md"
+        >
+          Upload File
+        </button>
+        <!-- Add search bar -->
+        <div class="mb-4">
+          <label for="searchInput">Search Student ID, Name, or Place:</label>
+          <input
+            type="text"
+            id="searchInput"
+            class="p-2 border border-gray-300 rounded-md w-full"
+            placeholder="Search..."
+          />
+          <button
+            id="clearSearch"
+            class="px-4 py-2 bg-red-500 text-white rounded-md"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <div id="columnSelection" class="mb-4 hidden">
+        <h2 class="text-lg font-semibold">Select Columns</h2>
+        <div class="flex-container">
+          <div class="flex-item flex-1">
+            <label for="nameColumn">Name Column:</label>
+            <select
+              id="nameColumn"
+              class="p-2 border border-gray-300 rounded-md dropdown w-full"
+            ></select>
+          </div>
+          <div class="flex-item flex-1">
+            <label for="ageColumn">Age Column:</label>
+            <select
+              id="ageColumn"
+              class="p-2 border border-gray-300 rounded-md dropdown w-full"
+            ></select>
+          </div>
+          <div class="flex-item flex-1">
+            <label for="genderColumn">Gender Column:</label>
+            <select
+              id="genderColumn"
+              class="p-2 border border-gray-300 rounded-md dropdown w-full"
+            ></select>
+          </div>
+          <div class="flex-item flex-1">
+            <label for="placeColumn">Place Column:</label>
+            <select
+              id="placeColumn"
+              class="p-2 border border-gray-300 rounded-md dropdown w-full"
+            ></select>
+          </div>
+        </div>
+        <button
+          id="showSelectedColumns"
+          class="px-4 py-2 bg-blue-500 text-white rounded-md mt-4"
+        >
+          Show Selected Columns
+        </button>
+      </div>
+
+      <div id="studentTable" class="mt-4"></div>
+
+      <div class="mt-6">
+        <h2 class="text-lg font-semibold">Age-based Grouping Settings</h2>
+        <label for="numAgeGroups">Enter number of age groups:</label>
+        <input
+          type="number"
+          id="numAgeGroups"
+          class="p-2 border border-gray-300 rounded-md mb-4"
+          required
+        />
+        <div id="ageRangesInput" class="mb-4"></div>
+        <button
+          id="setAgeRanges"
+          class="px-4 py-2 bg-blue-500 text-white rounded-md"
+        >
+          Set Age Ranges
+        </button>
+        <br />
+        <h3 class="mt-4">Grouping Options</h3>
+        <label>
+          <input type="radio" name="groupingOption" value="mixed" checked />
+          Mixed (Male and Female)
+        </label>
+        <br />
+        <label>
+          <input type="radio" name="groupingOption" value="separate" />
+          Separate (Male and Female)
+        </label>
+        <br />
+        <button
+          id="generateGroupsByAge"
+          class="px-4 py-2 bg-green-500 text-white rounded-md mt-4"
+        >
+          Generate Age-based Groups
+        </button>
+        
+      </div>
+
+      <div id="outputGroups" class="mt-4"></div>
+
+      <!-- Place Based Subgrouping Settings -->
+      <div class="mt-6">
+        <h2 class="text-lg font-semibold">Place Based Subgrouping Settings</h2>
+        <label for="subgroupCapacity">Subgroup Capacity:</label>
+        <input
+          type="number"
+          id="subgroupCapacity"
+          value="0"
+          class="p-2 border border-gray-300 rounded-md mb-4"
+        />
+        <button
+          id="generateSubgroups"
+          class="px-4 py-2 bg-green-500 text-white rounded-md mt-4"
+        >
+          Generate Subgroups
+        </button>
+        <div id="subgroupOutput"></div>
+      </div>
+      <!-- Add button to find missing students -->
+      <button
+        id="findMissingStudents"
+        class="px-4 py-2 bg-red-500 text-white rounded-md mt-4"
+      >
+      
+        Find Missing Students
+      </button>
+
+      <!-- Table to display missing students -->
+      <div id="missingStudentsTable" class="mt-4"></div>
+    </div>      
+      </div>
+      <!-- Scroll to Bottom/Top Button -->
+<div id="scrollButton" class="scroll-button">
+  <i class="fas fa-angle-down"></i>
+</div>
+
+    
+
+    <script>
+      let students = [];
+      let headers = [];
+      let ageRanges = [];
+
+      document.getElementById("uploadFile").addEventListener("click", () => {
+        const fileInput = document.getElementById("fileInput").files[0];
+
+        if (!fileInput) {
+          alert("Please select an Excel file.");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          headers = ["Student ID", ...jsonData[0]]; // Add "Student ID" to headers
+          document.getElementById("columnSelection").classList.remove("hidden");
+          populateColumnSelect(headers.slice(1)); // Don't include "Student ID" in dropdowns
+          students = jsonData.slice(1).map((row, idx) => {
+            let student = { "Student ID": idx + 1 }; // Assign student ID starting from 1
+            headers.slice(1).forEach((header, index) => {
+              student[header] = row[index];
+            });
+            return student;
+          });
+          displayStudents(headers, students);
+        };
+        reader.readAsArrayBuffer(fileInput);
+      });
+
+      function populateColumnSelect(headers) {
+        const nameSelect = document.getElementById("nameColumn");
+        const ageSelect = document.getElementById("ageColumn");
+        const genderSelect = document.getElementById("genderColumn");
+        const placeSelect = document.getElementById("placeColumn");
+
+        [nameSelect, ageSelect, genderSelect, placeSelect].forEach((select) => {
+          select.innerHTML = "<option value=''>Select Column</option>";
+          headers.forEach((header, index) => {
+            const option = document.createElement("option");
+            option.value = index;
+            option.textContent = header;
+            select.appendChild(option);
+          });
+        });
+      }
+
+      function displayStudents(selectedHeaders, studentsToDisplay) {
+        const studentTable = document.getElementById("studentTable");
+        studentTable.innerHTML = `        
+          <table class="table-auto border-collapse w-full mt-4">
+            <thead>
+              <tr class="bg-gray-200">
+                ${selectedHeaders
+                  .map((header) => `<th class="px-4 py-2">${header}</th>`)
+                  .join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${studentsToDisplay
+                .map(
+                  (student) => `        
+                  <tr>
+                    ${selectedHeaders
+                      .map(
+                        (header) =>
+                          `<td class="border px-4 py-2">${
+                            student[header] ?? "N/A"
+                          }</td>`
+                      )
+                      .join("")}
+                  </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+      }
+
+      document
+        .getElementById("showSelectedColumns")
+        .addEventListener("click", () => {
+          const nameIdx = parseInt(document.getElementById("nameColumn").value);
+          const ageIdx = parseInt(document.getElementById("ageColumn").value);
+          const genderIdx = parseInt(
+            document.getElementById("genderColumn").value
+          );
+          const placeIdx = parseInt(
+            document.getElementById("placeColumn").value
+          );
+
+          if (isNaN(nameIdx) || isNaN(ageIdx) || isNaN(genderIdx)) {
+            alert("Please select valid columns for Name, Age, and Gender.");
+            return;
+          }
+
+          // Filter students based on selected columns
+          students = students.map((student) => ({
+            "Student ID": student["Student ID"],
+            Name: student[headers[nameIdx + 1]],
+            Age: student[headers[ageIdx + 1]],
+            Gender: student[headers[genderIdx + 1]],
+            Place: student[headers[placeIdx + 1]],
+          }));
+
+          displayStudents(
+            ["Student ID", "Name", "Age", "Gender", "Place"],
+            students
+          );
+        });
+
+      // Dynamic generation of age range inputs
+      document
+        .getElementById("setAgeRanges")
+        .addEventListener("click", function () {
+          const numAgeGroups = parseInt(
+            document.getElementById("numAgeGroups").value
+          );
+          const ageRangesDiv = document.getElementById("ageRangesInput");
+          ageRangesDiv.innerHTML = "";
+
+          if (!numAgeGroups || numAgeGroups <= 0) {
+            alert("Please enter a valid number of age groups.");
+            return;
+          }
+
+          for (let i = 1; i <= numAgeGroups; i++) {
+            const rangeDiv = document.createElement("div");
+            rangeDiv.classList.add("mb-2");
+            rangeDiv.innerHTML = `
+              <label for="ageRange${i}">Age Range ${i} (e.g., 10-15):</label>
+              <input
+                type="text"
+                id="ageRange${i}"
+                class="p-2 border border-gray-300 rounded-md"
+                placeholder="Enter age range"
+                required
+              />
+            `;
+            ageRangesDiv.appendChild(rangeDiv);
+          }
+        });
+
+      // Get the search input and clear search button
+      const searchInput = document.getElementById("searchInput");
+      const clearSearchButton = document.getElementById("clearSearch");
+
+      // Add event listener to search input
+      searchInput.addEventListener("input", searchStudents);
+
+      // Add event listener to clear search button
+      clearSearchButton.addEventListener("click", () => {
+        searchInput.value = "";
+        searchStudents();
+      });
+
+      function searchStudents() {
+    const searchTerm = searchInput.value.trim().toLowerCase();
+    const tables = document.querySelectorAll("table");
+
+    // Remove existing search highlights
+    for (let table of tables) {
+        const rows = table.getElementsByTagName("tr");
+        for (let row of rows) {
+            row.classList.remove("search-highlight");
+        }
+    }
+
+    // Search and highlight matching rows
+    for (let table of tables) {
+        const rows = table.getElementsByTagName("tr");
+        for (let row of rows) {
+            const columns = row.getElementsByTagName("td");
+            if (columns.length > 0) {
+                // Highlight row for Place match
+                if (columns[0].textContent.trim().toLowerCase().includes(searchTerm)) {
+                    row.classList.add("search-highlight");
+                }
+                // Highlight row for Subgroup match
+                else if (columns[1].textContent.trim().toLowerCase().includes(searchTerm)) {
+                    row.classList.add("search-highlight");
+                }
+                // Highlight row for Students match
+                else if (columns[2].textContent.trim().toLowerCase().includes(searchTerm)) {
+                    row.classList.add("search-highlight");
+                }
+            }
+        }
+    }
+}
+
+// Call searchStudents function on input change
+searchInput.addEventListener("input", searchStudents);
+
+      function generateGroupsByAge() {
+        // Collect and validate age ranges
+        const numAgeGroups = parseInt(
+          document.getElementById("numAgeGroups").value
+        );
+        ageRanges = [];
+
+        for (let i = 1; i <= numAgeGroups; i++) {
+          const ageRange = document
+            .getElementById(`ageRange${i}`)
+            .value.split("-")
+            .map((num) => parseInt(num.trim()));
+
+          if (ageRange.length !== 2 || ageRange.some(isNaN)) {
+            alert("Please enter valid age ranges.");
+            return;
+          }
+          ageRanges.push(ageRange);
+        }
+
+        const groupingOption = document.querySelector(
+          "input[name='groupingOption']:checked"
+        ).value;
+
+        if (groupingOption === "mixed") {
+          createMixedGroups();
+        } else if (groupingOption === "separate") {
+          createSeparateGroups();
+        }
+      }
+
+      document
+        .getElementById("generateGroupsByAge")
+        .addEventListener("click", generateGroupsByAge);
+
+      // Function to generate mixed groups
+      function createMixedGroups() {
+        const outputDiv = document.getElementById("outputGroups");
+        outputDiv.innerHTML = "";
+        let groupCount = 1;
+        ageRanges.forEach((range, rangeIdx) => {
+          const groupTitle = `Group ${rangeIdx + 1} (Ages ${range[0]}-${
+            range[1]
+          })`;
+          const studentsInGroup = students.filter(
+            (student) => student.Age >= range[0] && student.Age <= range[1]
+          );
+          if (studentsInGroup.length > 0) {
+            // Alternate table colors for each group
+            const tableClass =
+              groupCount % 2 === 1 ? "table-blue" : "table-green";
+            outputDiv.innerHTML += `
+                <h2 class="text-lg font-bold mt-4">${groupTitle}</h2>
+                <table class="table-auto border-collapse w-full mt-4 ${tableClass}">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="px-4 py-2">Student ID</th>
+                            <th class="px-4 py-2">Name</th>
+                            <th class="px-4 py-2">Age</th>
+                            <th class="px-4 py-2">Gender</th>
+                            <th class="px-4 py-2">Place</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${studentsInGroup
+                          .map(
+                            (student) => `
+                            <tr>
+                                <td class="border px-4 py-2">${student["Student ID"]}</td>
+                                <td class="border px-4 py-2">${student.Name}</td>
+                                <td class="border px-4 py-2">${student.Age}</td>
+                                <td class="border px-4 py-2">${student.Gender}</td>
+                                <td class="border px-4 py-2">${student.Place}</td>
+                            </tr>
+                        `
+                          )
+                          .join("")}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="border px-4 py-2 text-left font-bold"> Total Students: ${
+                              studentsInGroup.length
+                            } </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+            groupCount++;
+          }
+        });
+      }
+
+      // Function to generate separate groups for males and females
+      function createSeparateGroups() {
+        const outputDiv = document.getElementById("outputGroups");
+        outputDiv.innerHTML = "";
+        ageRanges.forEach((range, rangeIdx) => {
+          const malesInGroup = students.filter(
+            (student) =>
+              student.Age >= range[0] &&
+              student.Age <= range[1] &&
+              student.Gender.toLowerCase() === "male"
+          );
+          const femalesInGroup = students.filter(
+            (student) =>
+              student.Age >= range[0] &&
+              student.Age <= range[1] &&
+              student.Gender.toLowerCase() === "female"
+          );
+          const groupTitle = `Group ${rangeIdx + 1} (Ages ${range[0]}-${
+            range[1]
+          })`;
+
+          if (malesInGroup.length > 0) {
+            outputDiv.innerHTML += `
+                <h2 class="text-lg font-bold mt-4">${groupTitle} - Males</h2>
+                <table class="table-auto border-collapse w-full mt-4 table-yellow">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="px-4 py-2">Student ID</th>
+                            <th class="px-4 py-2">Name</th>
+                            <th class="px-4 py-2">Age</th>
+                            <th class="px-4 py-2">Gender</th>
+                            <th class="px-4 py-2">Place</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${malesInGroup
+                          .map(
+                            (student) => `
+                            <tr>
+                                <td class="border px-4 py-2">${student["Student ID"]}</td>
+                                <td class="border px-4 py-2">${student.Name}</td>
+                                <td class="border px-4 py-2">${student.Age}</td>
+                                <td class="border px-4 py-2">${student.Gender}</td>
+                                <td class="border px-4 py-2">${student.Place}</td>
+                            </tr>
+                        `
+                          )
+                          .join("")}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="border px-4 py-2 text-left font-bold"> Total Students: ${
+                              malesInGroup.length
+                            } </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+          }
+
+          if (femalesInGroup.length > 0) {
+            outputDiv.innerHTML += `
+                <h2 class="text-lg font-bold mt-4">${groupTitle} - Females</h2>
+                <table class="table-auto border-collapse w-full mt-4 table-red">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="px-4 py-2">Student ID</th>
+                            <th class="px-4 py-2">Name</th>
+                            <th class="px-4 py-2">Age</th>
+                            <th class="px-4 py-2">Gender</th>
+                            <th class="px-4 py-2">Place</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${femalesInGroup
+                          .map(
+                            (student) => `
+                            <tr>
+                                <td class="border px-4 py-2">${student["Student ID"]}</td>
+                                <td class="border px-4 py-2">${student.Name}</td>
+                                <td class="border px-4 py-2">${student.Age}</td>
+                                <td class="border px-4 py-2">${student.Gender}</td>
+                                <td class="border px-4 py-2">${student.Place}</td>
+                            </tr>
+                        `
+                          )
+                          .join("")}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="border px-4 py-2 text-left font-bold"> Total Students: ${
+                              femalesInGroup.length
+                            } </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+          }
+        });
+      }
+
+      function createSubgroupsByPlace(
+        studentsInGroup,
+        capacity,
+        groupName,
+        groupIndex
+      ) {
+        const subgroups = [];
+        let subgroupIndex = 1;
+        studentsInGroup.forEach((student) => {
+          let placed = false;
+          // Check if student can be added to existing subgroups
+          for (let subgroup of subgroups) {
+            if (
+              subgroup.length < capacity &&
+              !subgroup.some((s) => s.Place === student.Place)
+            ) {
+              subgroup.push(student);
+              placed = true;
+              break;
+            }
+          }
+          // If no suitable subgroup is found, create a new subgroup
+          if (!placed) {
+            subgroups.push([student]);
+            subgroupIndex++;
+          }
+        });
+
+        // Generate subgroup tables with same color for subgroups within same age group
+        const outputDiv = document.getElementById("subgroupOutput");
+        const tableColors = [
+          "table-blue",
+          "table-green",
+          "table-yellow",
+          "table-red",
+        ]; // Add more colors if needed
+        const tableClass = tableColors[groupIndex % tableColors.length]; // Cycle through colors for each age group
+        subgroups.forEach((subgroup, index) => {
+          const subgroupTitle = `${groupName} - SG${index + 1}`;
+          outputDiv.innerHTML += `
+            <h2 class="text-lg font-bold mt-4">${subgroupTitle}</h2>
+            <table class="table-auto border-collapse w-full mt-4 ${tableClass}">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="px-4 py-2">Student ID</th>
+                        <th class="px-4 py-2">Student Name</th>
+                        <th class="px-4 py-2">Place</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${subgroup
+                      .map(
+                        (student) => `
+                            <tr>
+                                <td class="border px-4 py-2">${student["Student ID"]}</td>
+                                <td class="border px-4 py-2">${student.Name}</td>
+                                <td class="border px-4 py-2">${student.Place}</td>
+                            </tr>
+                        `
+                      )
+                      .join("")}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="border px-4 py-2 text-left font-bold"> Total Students: ${
+                          subgroup.length
+                        } / ${capacity} </td>
+                    </tr>
+                </tfoot>
+            </table>
+        `;
+        });
+      }
+
+      // Generate Subgroups function
+      function generateSubgroups() {
+        const capacity = parseInt(
+          document.getElementById("subgroupCapacity").value
+        );
+        if (isNaN(capacity) || capacity <= 0) {
+          alert("Please enter a valid subgroup capacity.");
+          return;
+        }
+
+        const groupingOption = document.querySelector(
+          "input[name='groupingOption']:checked"
+        ).value;
+
+        document.getElementById("subgroupOutput").innerHTML = "";
+
+        if (groupingOption === "mixed") {
+          createMixedSubgroups(capacity);
+        } else if (groupingOption === "separate") {
+          createSeparateSubgroups(capacity);
+        }
+      }
+
+      // Create Mixed Subgroups function
+      function createMixedSubgroups(capacity) {
+        ageRanges.forEach((range, groupIndex) => {
+          const groupName = `Mixed (${range[0]}-${range[1]})`;
+          const studentsInGroup = students.filter(
+            (student) => student.Age >= range[0] && student.Age <= range[1]
+          );
+          createSubgroupsByPlace(
+            studentsInGroup,
+            capacity,
+            groupName,
+            groupIndex
+          );
+        });
+      }
+
+      // Create Separate Subgroups function
+      function createSeparateSubgroups(capacity) {
+        ageRanges.forEach((range, groupIndex) => {
+          const malesInGroup = students.filter(
+            (student) =>
+              student.Age >= range[0] &&
+              student.Age <= range[1] &&
+              student.Gender.toLowerCase() === "male"
+          );
+          const femalesInGroup = students.filter(
+            (student) =>
+              student.Age >= range[0] &&
+              student.Age <= range[1] &&
+              student.Gender.toLowerCase() === "female"
+          );
+
+          if (malesInGroup.length > 0) {
+            const groupName = `Male (${range[0]}-${range[1]})`;
+            createSubgroupsByPlace(
+              malesInGroup,
+              capacity,
+              groupName,
+              groupIndex
+            );
+          }
+
+          if (femalesInGroup.length > 0) {
+            const groupName = `Female (${range[0]}-${range[1]})`;
+            createSubgroupsByPlace(
+              femalesInGroup,
+              capacity,
+              groupName,
+              groupIndex
+            );
+          }
+        });
+      }
+
+      // Add event listener to generate subgroups button
+      document
+        .getElementById("generateSubgroups")
+        .addEventListener("click", generateSubgroups);
+
+// Function to find missing students
+function findMissingStudents() {
+  const allStudents = students; 
+  const groupedStudents = [];
+
+  // Collect students from age-based groups
+  const ageGroupsTables = document.getElementById("outputGroups").getElementsByTagName("table");
+  for (let table of ageGroupsTables) {
+    const rows = table.getElementsByTagName("tr");
+    for (let row of rows) {
+      if (row.cells.length > 0) {
+        const studentID = row.cells[0].textContent.trim();
+        if (studentID) {
+          groupedStudents.push(studentID);
+        }
+      }
+    }
+  }
+
+  // Collect students from place-based subgroups
+  const subgroupTables = document.getElementById("subgroupOutput").getElementsByTagName("table");
+  for (let table of subgroupTables) {
+    const rows = table.getElementsByTagName("tr");
+    for (let row of rows) {
+      if (row.cells.length > 0) {
+        const studentID = row.cells[0].textContent.trim();
+        if (studentID) {
+          groupedStudents.push(studentID);
+        }
+      }
+    }
+  }
+
+  // Find missing students
+  const missingStudents = allStudents.filter((student) => !groupedStudents.includes(student["Student ID"].toString()));
+
+  // Display missing students table
+  const missingStudentsTable = document.getElementById("missingStudentsTable");
+  missingStudentsTable.innerHTML = `
+    <h2 class="text-lg font-bold mt-4">Missing Students</h2>
+    <table class="table-auto border-collapse w-full mt-4">
+      <thead>
+        <tr class="bg-gray-200">
+          <th class="px-4 py-2">Student ID</th>
+          <th class="px-4 py-2">Name</th>
+          <th class="px-4 py-2">Age</th>
+          <th class="px-4 py-2">Gender</th>
+          <th class="px-4 py-2">Place</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${missingStudents.map((student) => `
+          <tr>
+            <td class="border px-4 py-2">${student["Student ID"]}</td>
+            <td class="border px-4 py-2">${student.Name}</td>
+            <td class="border px-4 py-2">${student.Age}</td>
+            <td class="border px-4 py-2">${student.Gender}</td>
+            <td class="border px-4 py-2">${student.Place}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+// Add event listener to find missing students button
+document.getElementById("findMissingStudents").addEventListener("click", findMissingStudents);
+
+
+const scrollButton = document.getElementById("scrollButton");
+
+// Function to scroll to bottom
+function scrollToBottom() {
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: "smooth",
+  });
+}
+
+// Function to scroll to top
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}
+
+// Event listener for scroll button
+scrollButton.addEventListener("click", () => {
+  if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
+    // Change icon to up arrow and scroll to top
+    scrollButton.classList.remove("down");
+    scrollButton.classList.add("up");
+    scrollButton.innerHTML = '<i class="fas fa-angle-up"></i>';
+    scrollToTop();
+  } else {
+    // Change icon to down arrow and scroll to bottom
+    scrollButton.classList.remove("up");
+    scrollButton.classList.add("down");
+    scrollButton.innerHTML = '<i class="fas fa-angle-down"></i>';
+    scrollToBottom();
+  }
+});
+
+// Event listener for window scroll
+window.addEventListener("scroll", () => {
+  if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
+    // Change icon to up arrow
+    scrollButton.classList.remove("down");
+    scrollButton.classList.add("up");
+    scrollButton.innerHTML = '<i class="fas fa-angle-up"></i>';
+  } else if (window.scrollY < document.body.scrollHeight / 2) {
+    // Change icon to down arrow
+    scrollButton.classList.remove("up");
+    scrollButton.classList.add("down");
+    scrollButton.innerHTML = '<i class="fas fa-angle-down"></i>';
+  }
+});
+
+
+      
+    </script>
+  </body>
+</html>
